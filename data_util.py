@@ -28,6 +28,8 @@ class TextData:
 
         self.word2id = None
         self.id2word = None
+        self.lines = None
+        self.conversations = None
         self.line_id = None
 
         self.train_samples = []
@@ -51,10 +53,11 @@ class TextData:
             # 读取 movie_line.txt 和 movie_conversations.txt 两个文件
             print("开始读取数据")
 
-            self.lines = pd.read_csv(self.args.line_path, sep="\+\+\+\$\+\+\+", usecols=[0, 4],
-                                     names=["line_id", "utterance"], dtype={"line_id":str,"utterance": str}, engine="python")
+            self.lines = pd.read_csv(self.args.line_path, sep=" \+\+\+\$\+\+\+ ", usecols=[0, 4],
+                                     names=["line_id", "utterance"], dtype={"utterance": str},
+                                     engine="python")
             self.conversations = pd.read_csv(self.args.conv_path, usecols=[3], names=["line_ids"],
-                                             sep="\+\+\+\$\+\+\+", dtype={"line_ids": str}, engine="python")
+                                             sep=" \+\+\+\$\+\+\+ ", dtype={"line_ids": str}, engine="python")
             self.lines.utterance = self.lines.utterance.apply(lambda conv: self.word_tokenizer(conv))
             self.conversations.line_ids = self.conversations.line_ids.apply(lambda li: eval(li))
             print("数据读取完毕")
@@ -113,11 +116,15 @@ class TextData:
 
     def generate_conversations(self):
         if not os.path.exists(self.args.train_samples_path):
+            # 将word替换为id
+            # self.replace_word_with_id()
             print("开始生成训练样本")
+            # 将id与line作为字典，以方便生成训练样本
             self.line_id = pd.Series(self.lines.utterance.values, index=self.lines.line_id.values)
-            for line_id in tqdm(self.conversations.line_ids.values, ncols=10):
+            for line_id in tqdm(self.conversations.line_ids.values, ncols=100):
                 for i in range(len(line_id) - 1):
-                    first_conv = self.line_id['L194']
+
+                    first_conv = self.line_id[line_id[i]]
                     second_conv = self.line_id[line_id[i + 1]]
 
                     first_conv = self.replace_word_with_id(first_conv)
@@ -127,7 +134,6 @@ class TextData:
                     if valid:
                         temp = [first_conv, second_conv]
                         self.train_samples.append(temp)
-
 
             print("生成训练样本结束")
             with open(self.args.train_samples_path, 'wb') as handle:
@@ -139,7 +145,6 @@ class TextData:
             with open(self.args.train_samples_path, 'rb') as handle:
                 data = pkl.load(handle)
                 self.train_samples = data['train_samples']
-                print(self.train_samples)
             print("从{}导入训练样本".format(self.args.train_samples_path))
 
     def word_tokenizer(self, sentence):
