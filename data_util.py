@@ -4,7 +4,7 @@ import pandas as pd
 from itertools import chain
 import numpy as np
 import pickle as pkl
-import tqdm
+from tqdm import tqdm
 import nltk
 import random
 import string
@@ -40,6 +40,11 @@ class TextData:
 
         self.load_data()
         self.build_word_dict()
+        self.generate_conversations()
+
+        # generate batches
+        self.batch_index = 0
+        self.epoch_completed = 0
 
     def load_data(self):
         if not os.path.exists(self.args.word_id_path) or not os.path.exists(self.args.train_samples_path):
@@ -47,7 +52,7 @@ class TextData:
             print("开始读取数据")
 
             self.lines = pd.read_csv(self.args.line_path, sep="\+\+\+\$\+\+\+", usecols=[0, 4],
-                                     names=["line_id", "utterance"], dtype={"utterance": str}, engine="python")
+                                     names=["line_id", "utterance"], dtype={"line_id":str,"utterance": str}, engine="python")
             self.conversations = pd.read_csv(self.args.conv_path, usecols=[3], names=["line_ids"],
                                              sep="\+\+\+\$\+\+\+", dtype={"line_ids": str}, engine="python")
             self.lines.utterance = self.lines.utterance.apply(lambda conv: self.word_tokenizer(conv))
@@ -112,8 +117,8 @@ class TextData:
             self.line_id = pd.Series(self.lines.utterance.values, index=self.lines.line_id.values)
             for line_id in tqdm(self.conversations.line_ids.values, ncols=10):
                 for i in range(len(line_id) - 1):
-                    first_conv = self.line_id[line_id[i]]
-                    second_conv = self.line_id[line_id[i + 2]]
+                    first_conv = self.line_id['L194']
+                    second_conv = self.line_id[line_id[i + 1]]
 
                     first_conv = self.replace_word_with_id(first_conv)
                     second_conv = self.replace_word_with_id(second_conv)
@@ -122,6 +127,7 @@ class TextData:
                     if valid:
                         temp = [first_conv, second_conv]
                         self.train_samples.append(temp)
+
 
             print("生成训练样本结束")
             with open(self.args.train_samples_path, 'wb') as handle:
@@ -133,6 +139,7 @@ class TextData:
             with open(self.args.train_samples_path, 'rb') as handle:
                 data = pkl.load(handle)
                 self.train_samples = data['train_samples']
+                print(self.train_samples)
             print("从{}导入训练样本".format(self.args.train_samples_path))
 
     def word_tokenizer(self, sentence):
@@ -329,11 +336,37 @@ class TextData:
 if __name__ == '__main__':
     class args:
         def __init__(self):
+            # data args
             self.line_path = "data/movie_lines.txt"
             self.conv_path = "data/movie_conversations.txt"
             self.train_samples_path = "samples/train_samples.pkl"
             self.word_id_path = "samples/word_id.pkl"
             self.vocab_filter = 1
+
+            # model args
+            self.maxLengthEnco = 10
+            self.maxLengthDeco = 12
+            self.maxLength = 10
+            self.embedding_size = 64
+            self.hidden_size = 512
+            self.rnn_layers = 2
+            self.dropout = 0.9
+            self.batch_size = 256
+            self.learning_rate = 0.002
+            self.beta1 = 0.9
+            self.beta2 = 0.999
+            self.epsilon = 1e-08
+            self.softmaxSamples = 0
+
+            # train args
+            self.log_device_placement = False
+            self.allow_soft_placement = True
+            self.num_checkpoints = 100
+            self.epoch_nums = 30
+            self.checkpoint_every = 100
+            self.evaluate_every = 100
+            self.test = 'interactive'
+
 
     args = args()
     textData = TextData(args)
