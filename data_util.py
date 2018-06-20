@@ -7,6 +7,7 @@ import pickle as pkl
 import tqdm
 import nltk
 import random
+import string
 
 
 class Batch:
@@ -37,6 +38,9 @@ class TextData:
         self.unKnowToken = '<unk>'  # Word dropped from vocabulary
         self.numToken = 4  # Num of above tokens
 
+        self.load_data()
+        self.build_word_dict()
+
     def load_data(self):
         if not os.path.exists(self.args.word_id_path) or not os.path.exists(self.args.train_samples_path):
             # 读取 movie_line.txt 和 movie_conversations.txt 两个文件
@@ -48,7 +52,7 @@ class TextData:
                                              sep="\+\+\+\$\+\+\+", dtype={"line_ids": str}, engine="python")
             self.lines.utterance = self.lines.utterance.apply(lambda conv: self.word_tokenizer(conv))
             self.conversations.line_ids = self.conversations.line_ids.apply(lambda li: eval(li))
-            # print("数据读取完毕")
+            print("数据读取完毕")
 
     def build_word_dict(self):
         if not os.path.exists(self.args.word_id_path):
@@ -252,7 +256,7 @@ class TextData:
         if len(tokens) > self.args.maxLength:
             return None
 
-        #Second step: Covert the token in word ids
+        # Second step: Covert the token in word ids
         wordIds = []
         for token in tokens:
             if token in self.word2id:
@@ -260,12 +264,12 @@ class TextData:
             else:
                 wordIds.append(self.word2id[self.unKnowToken])
 
-        #Third step: creating the batch (add padding, reverse)
-        batch = self.create_batch([[wordIds,[]]])
+        # Third step: creating the batch (add padding, reverse)
+        batch = self.create_batch([[wordIds, []]])
 
         return batch
 
-    def deco2sentence(self,decoderOutputs):
+    def deco2sentence(self, decoderOutputs):
         """
         Decode the output of the decoder and return a human friendly sentence
         decoderOutputs (list<np.array>)
@@ -277,6 +281,59 @@ class TextData:
 
         # Choose the words with the highest prediction score
         for out in decoderOutputs:
-            sequence.append(np.argmax(out)) #Adding each prediction word ids
+            sequence.append(np.argmax(out))  # Adding each prediction word ids
 
         return sequence
+
+    def sequence2str(self, sequence, clean=False, reverse=False):
+        """
+        Covert a list of integer into a human readable string
+        :arg
+        :param sequence: (list<int>) the sentence to print
+        :param clean: (Bool) if set, remove the <go>, <pad> and <eos> tokens
+        :param reverse: (Bool) for the input, option to restore the standard order
+        :return: (str) the sentence
+        """
+        if not sequence:
+            return ''
+
+        if not clean:
+            return ''.join([self.id2word[idx] for idx in sequence])
+
+        sentence = []
+        for idx in sequence:
+            if idx == self.word2id[self.eosToken]:
+                break
+            elif idx != self.word2id[self.padToken] and idx != self.word2id[self.goToken]:
+                sentence.append(self.id2word[idx])
+
+        if reverse:
+            sentence.reverse()
+
+        return self.detokenize(sentence)
+
+    def detokenize(self, tokens):
+        """Slightly cleaner version of joining with spaces.
+        Args:
+            tokens (list<string>): the sentence to print
+        Return:
+            str: the sentence
+        """
+        return ''.join([
+            ' ' + t if not t.startswith('\'') and
+                       t not in string.punctuation
+            else t
+            for t in tokens]).strip().capitalize()
+
+
+if __name__ == '__main__':
+    class args:
+        def __init__(self):
+            self.line_path = "data/movie_lines.txt"
+            self.conv_path = "data/movie_conversations.txt"
+            self.train_samples_path = "samples/train_samples.pkl"
+            self.word_id_path = "samples/word_id.pkl"
+            self.vocab_filter = 1
+
+    args = args()
+    textData = TextData(args)
