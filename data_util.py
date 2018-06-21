@@ -175,7 +175,7 @@ class TextData:
             Generate over the mini-batch training samples
             :return:
             """
-            for i in range(0, len(self.train_samples, self.args.batch_size)):
+            for i in range(0, len(self.train_samples), self.args.batch_size):
                 yield self.train_samples[i:min(i + self.args.batch_size, len(self.train_samples))]
 
         # TODO: Should replace that by generator (better by tf.queue)
@@ -220,7 +220,7 @@ class TextData:
             batch.decoderSeqs[i] = batch.decoderSeqs[i] + [self.word2id[self.padToken]] * (
                     self.args.maxLengthDeco - len(batch.decoderSeqs[i]))
             batch.targetSeqs[i] = batch.targetSeqs[i] + [self.word2id[self.padToken]] * (
-                    self.args.maxLengthDeco - len(batch.decoderSeqs[i]))
+                    self.args.maxLengthDeco - len(batch.targetSeqs[i]))
 
         # Simple hack to reshape the batch
         encoderSeqsT = []
@@ -229,7 +229,7 @@ class TextData:
             for j in range(batch_size):
                 encoderSeqT.append(batch.encoderSeqs[j][i])
             encoderSeqsT.append(encoderSeqT)
-        batch.encoderSeqs = encoderSeqT
+        batch.encoderSeqs = encoderSeqsT
 
         decoderSeqsT = []
         targetSeqsT = []

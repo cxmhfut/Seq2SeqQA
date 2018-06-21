@@ -62,10 +62,11 @@ class Seq2SeqModel:
         self.decoder_targets = None
         self.decoder_weights = None
 
-        self.num_encoder_symbols = 10000
-        self.num_decoder_symbols = 10000
+        self.num_encoder_symbols = len(text_data.word2id)
+        self.num_decoder_symbols = self.num_encoder_symbols
 
         # important operation
+        self.cell = None
         self.outputs = None
         self.loss = None
 
@@ -76,7 +77,7 @@ class Seq2SeqModel:
         # Sampled softmax only makes sense if we sample less than vocabulary size.
         if 0 < self.args.softmaxSamples < self.text_data.getVocabularySize():
             outputProjection = ProjectionOp(
-                (self.text_data.getVocabularySize, self.args.hiddenSize),
+                (self.text_data.getVocabularySize, self.args.hidden_size),
                 scope='softmax_projection',
                 dtype=tf.float32
             )
@@ -100,30 +101,40 @@ class Seq2SeqModel:
                     ), tf.float32
                 )
 
-        # define multi RNN cell
+        # define mutil RNN cell
         def create_cell():
-            cell = tf.nn.rnn_cell.LSTMCell(self.args.hiddenSize)
-            cell = tf.nn.rnn_cell.DropoutWrapper(
+            cell = tf.contrib.rnn.BasicLSTMCell(self.args.hidden_size)
+            cell = tf.contrib.rnn.DropoutWrapper(
                 cell,
                 input_keep_prob=1.0,
-                output_keep_prob=self.args.dropout
-            )
-
+                output_keep_prob=self.args.dropout)
             return cell
 
         self.cell = tf.nn.rnn_cell.MultiRNNCell([create_cell() for _ in range(self.args.rnn_layers)])
 
+        # # define placeholder
+        # with tf.name_scope("encoder_placeholder"):
+        #     self.encoder_inputs = [tf.placeholder(tf.int32, [None, ], name='encoder_inputs') for _ in
+        #                            range(self.args.maxLengthEnco)]
+        # with tf.name_scope("decoder_placeholder"):
+        #     self.decoder_inputs = [tf.placeholder(tf.int32, [None, ], name='decoder_inputs') for _ in
+        #                            range(self.args.maxLengthDeco)]
+        #     self.decoder_targets = [tf.placeholder(tf.int32, [None, ], name='decoder_targets') for _ in
+        #                             range(self.args.maxLengthDeco)]
+        #     self.decoder_weights = [tf.placeholder(tf.float32, [None, ], name='decoder_weights') for _ in
+        #                             range(self.args.maxLengthDeco)]
+
         # define placeholder
         with tf.name_scope("encoder_placeholder"):
-            self.encoder_inputs = [tf.placeholder(tf.int32, [None, ], name='encoder_inputs') for _ in
-                                   range(self.args.maxLengthEnco)]
+            self.encoder_inputs = [tf.placeholder(tf.int32, [None, ])
+                                   for _ in range(self.args.maxLengthEnco)]
         with tf.name_scope("decoder_placeholder"):
-            self.decoder_inputs = [tf.placeholder(tf.int32, [None, ], name='decoder_inputs') for _ in
-                                   range(self.args.maxLengthDeco)]
-            self.decoder_targets = [tf.placeholder(tf.int32, [None, ], name='decoder_targets') for _ in
-                                    range(self.args.maxLengthDeco)]
-            self.decoder_weights = [tf.placeholder(tf.float32, [None, ], name='decoder_weights') for _ in
-                                    range(self.args.maxLengthDeco)]
+            self.decoder_inputs = [tf.placeholder(tf.int32, [None, ], name='decoder_inputs')
+                                   for _ in range(self.args.maxLengthDeco)]
+            self.decoder_targets = [tf.placeholder(tf.int32, [None, ], name='decoder_targets')
+                                    for _ in range(self.args.maxLengthDeco)]
+            self.decoder_weights = [tf.placeholder(tf.float32, [None, ], name='decoder_weights')
+                                    for _ in range(self.args.maxLengthDeco)]
 
         decoder_output, state = embedding_rnn_seq2seq(
             self.encoder_inputs,
