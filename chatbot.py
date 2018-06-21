@@ -8,6 +8,7 @@ from args import args
 from data_util import TextData
 from seq2seq_model import Seq2SeqModel
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 class ChatBot:
     def __init__(self):
