@@ -9,6 +9,7 @@ class args:
         self.vocab_filter = 1
 
         # model args
+        self.modeldir = 'model'
         self.maxLengthEnco = 10
         self.maxLengthDeco = 12
         self.maxLength = 10

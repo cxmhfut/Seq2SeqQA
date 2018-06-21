@@ -103,26 +103,14 @@ class Seq2SeqModel:
 
         # define mutil RNN cell
         def create_cell():
-            cell = tf.contrib.rnn.BasicLSTMCell(self.args.hidden_size)
-            cell = tf.contrib.rnn.DropoutWrapper(
+            cell = tf.nn.rnn_cell.LSTMCell(self.args.hidden_size)
+            cell = tf.nn.rnn_cell.DropoutWrapper(
                 cell,
                 input_keep_prob=1.0,
                 output_keep_prob=self.args.dropout)
             return cell
 
         self.cell = tf.nn.rnn_cell.MultiRNNCell([create_cell() for _ in range(self.args.rnn_layers)])
-
-        # # define placeholder
-        # with tf.name_scope("encoder_placeholder"):
-        #     self.encoder_inputs = [tf.placeholder(tf.int32, [None, ], name='encoder_inputs') for _ in
-        #                            range(self.args.maxLengthEnco)]
-        # with tf.name_scope("decoder_placeholder"):
-        #     self.decoder_inputs = [tf.placeholder(tf.int32, [None, ], name='decoder_inputs') for _ in
-        #                            range(self.args.maxLengthDeco)]
-        #     self.decoder_targets = [tf.placeholder(tf.int32, [None, ], name='decoder_targets') for _ in
-        #                             range(self.args.maxLengthDeco)]
-        #     self.decoder_weights = [tf.placeholder(tf.float32, [None, ], name='decoder_weights') for _ in
-        #                             range(self.args.maxLengthDeco)]
 
         # define placeholder
         with tf.name_scope("encoder_placeholder"):

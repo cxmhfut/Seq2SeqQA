@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from args import args
 from data_util import TextData
-from seq2seq_model2 import seq2seq
+from seq2seq_model import Seq2SeqModel
 
 
 class ChatBot:
@@ -28,10 +28,10 @@ class ChatBot:
 
         with tf.Graph().as_default():
             # build seq2seq model
-            self.seq2seq_model = seq2seq(self.args, self.text_data)
+            self.seq2seq_model = Seq2SeqModel(self.args, self.text_data)
 
             # Saver/summaries
-            out_dir = os.path.abspath(os.path.join(os.path.curdir, "save/model"))
+            out_dir = os.path.abspath(os.path.join(os.path.curdir, self.args.modeldir))
             print(out_dir)
             self.writer = tf.summary.FileWriter(out_dir)
             self.saver = tf.train.Saver()
@@ -93,7 +93,7 @@ class ChatBot:
 
     def save_session(self,sess,step):
         tqdm.write('Checkpoint reached: saving model')
-        model_name = os.path.join('save/model','model.ckpt')
+        model_name = os.path.join(self.args.modeldir,'model.ckpt')
         self.saver.save(sess,model_name,global_step=step)
         tqdm.write('Model saved.')
 
