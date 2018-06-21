@@ -87,7 +87,7 @@ class ChatBot:
                     if self.global_step % self.args.checkpoint_every == 0:
                         self.save_session(self.sess, self.global_step)
                 toc = datetime.datetime.now()
-                print("Epoch finished in {}".format(toc - tic))
+                print("Epoch({}/{}) finished in {}".format(i+1,self.args.epoch_nums,toc - tic))
         except(KeyboardInterrupt, SystemExit):  # If the user press Ctrl+C while testing progress
             print('Interruption detected, exiting the program...')
             self.save_session(self.sess, self.global_step)
