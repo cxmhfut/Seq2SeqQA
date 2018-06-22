@@ -43,8 +43,7 @@ class ChatBot:
             )
             self.sess = tf.Session(config=session_conf)
 
-            if self.args.test is not None:
-                pass
+            self.restore_previous_model()
 
             if self.args.test == 'interactive':
                 pass
@@ -97,6 +96,13 @@ class ChatBot:
         model_name = os.path.join(self.args.modeldir,'model.ckpt')
         self.saver.save(sess,model_name,global_step=step)
         tqdm.write('Model saved.')
+
+    def restore_previous_model(self):
+        model_path = os.path.join(os.path.curdir,self.args.modeldir)
+        ckpt = tf.train.latest_checkpoint(model_path)
+        if ckpt:
+            print('Restoring previous model from {}'.format(ckpt))
+            self.saver.restore(self.sess,ckpt)
 
 if __name__ == '__main__':
     chatbot = ChatBot()
