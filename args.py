@@ -1,4 +1,3 @@
-
 class args:
     def __init__(self):
         # data args
@@ -31,5 +30,5 @@ class args:
         self.epoch_nums = 50
         self.checkpoint_every = 100
         self.evaluate_every = 100
-        self.test = None
-        #self.test = 'interactive'
+        # self.test = None
+        self.test = 'interactive'
