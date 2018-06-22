@@ -34,7 +34,6 @@ class ChatBot:
 
             # Saver/summaries
             out_dir = os.path.abspath(os.path.join(os.path.curdir, self.args.modeldir))
-            print(out_dir)
             self.writer = tf.summary.FileWriter(out_dir)
             self.saver = tf.train.Saver()
 
