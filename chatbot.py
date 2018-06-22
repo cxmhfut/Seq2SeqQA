@@ -99,11 +99,10 @@ class ChatBot:
 
     def restore_previous_model(self):
         model_path = os.path.join(os.path.curdir,self.args.modeldir)
-        print(model_path)
-        ckpt = tf.train.latest_checkpoint(model_path)
-        if ckpt:
-            print('Restoring previous model from {}'.format(ckpt))
-            self.saver.restore(self.sess,ckpt)
+        ckpt = tf.train.get_checkpoint_state(model_path)
+        if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
+            print('Reloading model parameters..')
+            self.saver.restore(self.sess, ckpt.model_checkpoint_path)
 
     def single_predict(self,question,questionSeq=None):
         #Create the input batch
