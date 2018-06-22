@@ -28,7 +28,7 @@ class args:
         self.log_device_placement = False
         self.allow_soft_placement = True
         self.num_checkpoints = 100
-        self.epoch_nums = 30
+        self.epoch_nums = 50
         self.checkpoint_every = 100
         self.evaluate_every = 100
         self.test = None
