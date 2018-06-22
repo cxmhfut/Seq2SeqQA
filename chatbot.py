@@ -10,6 +10,7 @@ from seq2seq_model import Seq2SeqModel
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
+
 class ChatBot:
     def __init__(self):
         self.args = args()
@@ -46,7 +47,7 @@ class ChatBot:
             self.restore_previous_model()
 
             if self.args.test == 'interactive':
-                pass
+                self.test_interactive()
             else:
                 self.train()
 
@@ -86,27 +87,57 @@ class ChatBot:
                     if self.global_step % self.args.checkpoint_every == 0:
                         self.save_session(self.sess, self.global_step)
                 toc = datetime.datetime.now()
-                print("Epoch({}/{}) finished in {}".format(i+1,self.args.epoch_nums,toc - tic))
+                print("Epoch({}/{}) finished in {}".format(i + 1, self.args.epoch_nums, toc - tic))
         except(KeyboardInterrupt, SystemExit):  # If the user press Ctrl+C while testing progress
             print('Interruption detected, exiting the program...')
             self.save_session(self.sess, self.global_step)
 
-    def save_session(self,sess,step):
+    def save_session(self, sess, step):
         tqdm.write('Checkpoint reached: saving model')
-        model_name = os.path.join(self.args.modeldir,'model.ckpt')
-        self.saver.save(sess,model_name,global_step=step)
+        model_name = os.path.join(self.args.modeldir, 'model.ckpt')
+        self.saver.save(sess, model_name, global_step=step)
         tqdm.write('Model saved.')
 
     def restore_previous_model(self):
-        model_path = os.path.join(os.path.curdir,self.args.modeldir)
+        model_path = os.path.join(os.path.curdir, self.args.modeldir)
         ckpt = tf.train.get_checkpoint_state(model_path)
         if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
-            print('Reloading model parameters..')
+            print('Reloading model parameters from {}'.format(ckpt.model_checkpoint_path))
             self.saver.restore(self.sess, ckpt.model_checkpoint_path)
 
-    def single_predict(self,question,questionSeq=None):
-        #Create the input batch
+    def single_predict(self, question, questionSeq=None):
+        # Create the input batch
         batch = self.text_data.sentence2enco(question)
+        if not batch:
+            return None
+        if questionSeq is not None:  # If the caller want to have the real input
+            questionSeq.extend(batch.encoderSeqs)
+
+        # Run the model
+        feed_dict = self.seq2seq_model.step(batch)
+
+        output = self.sess.run(self.seq2seq_model.outputs, feed_dict)
+        answer = self.text_data.deco2sentence(output)
+
+        return answer
+
+    def test_interactive(self):
+        print('Testing: Launch interactive mode.')
+        print('Welcome to the interactive mode. Type \'exit\' or just press ENTER to quit the program. Have fun.')
+
+        while True:
+            question = input(self.SENTENCE_PREFIX[0])
+            if question == '' or question == 'exit':
+                break
+            questionSeq = []
+            answer = self.single_predict(question,questionSeq)
+            if not answer:
+                print('Warning: sentence too long, sorry maybe try a simpler sentence.')
+                continue
+
+            print('{}{}'.format(self.SENTENCE_PREFIX[1],self.text_data.sequence2str(answer,clean=True)))
+            print()
+
 
 if __name__ == '__main__':
     chatbot = ChatBot()

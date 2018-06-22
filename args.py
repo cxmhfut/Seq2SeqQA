@@ -31,4 +31,5 @@ class args:
         self.epoch_nums = 30
         self.checkpoint_every = 100
         self.evaluate_every = 100
-        self.test = None
+        #self.test = None
+        self.test = 'interactive'
